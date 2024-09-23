@@ -17,7 +17,7 @@ namespace WebApiDemo.Controllers
         [HttpGet("{id}")]
         public string Get(int id)
         {
-            Console.WriteLine("Requesting user " + id);
+            Console.WriteLine($"Requesting user {id} from API--inside controller.");
             return $"user { id }";
         }
 

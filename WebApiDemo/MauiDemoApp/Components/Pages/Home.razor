@@ -1,0 +1,84 @@
+﻿@page "/"
+@using System.Diagnostics
+@using System.Net
+
+<h1>This is the mobile app.</h1>
+
+
+<h4>Retrieve value from API (issue GET command):</h4>
+<p style="color: red">@MessageFromConsole</p>
+<button id="myBtn" @onclick="OnClick">Call GET from API</button>
+
+@functions {
+    private async Task OnClick()
+    {
+        //MessageFromConsole = "You clicked the button, didn't you?";
+
+        var client = new HttpClient
+        {
+            // We really need to use the Android address but we are running the maui app on Windows for testing right now.
+            // BaseAddress = new Uri("https://localhost:7141") // For Android emulator: use http://10.0.2.2:5000
+            // BaseAddress = new Uri("http://10.0.2.2:7141")
+            BaseAddress = new Uri("http://192.168.1.206:7140")
+        };
+
+        client.Timeout = TimeSpan.FromSeconds(10);
+
+        int numberInput = 5;
+        try
+        {
+            //string text = await client.GetStringAsync($"{ apiUrl}/api/users/{numberInput}");
+            var response = await client.GetStringAsync($"/api/users/{numberInput}");
+            MessageFromConsole = response;
+            Console.WriteLine($"Retrieved from API: {response}");
+        }
+
+        catch (WebException e)
+        {
+            Trace.WriteLine(e.Message);
+            Trace.WriteLine(e.Source);
+            Trace.WriteLine(e.Status);
+            /*if (e.Status == WebExceptionStatus.ProtocolError)
+            {
+                Trace.WriteLine($"Status Code : {((HttpWebResponse)e.Response).StatusCode}");
+                Trace.WriteLine($"Status Description : {((HttpWebResponse)e.Response).StatusDescription}");
+            }
+            else if (e.Status == WebExceptionStatus.Timeout)
+            {
+                Trace.WriteLine("There was a timeout error");
+            }
+            else if (e.Status == WebExceptionStatus.ServerProtocolViolation)
+            {
+                Trace.WriteLine("Not a valid HTTP request");
+            }*/
+
+        }
+
+        catch (Exception ex)
+        {
+            Trace.WriteLine(ex.Message);
+            /*/Console.WriteLine(ex.Message);*/
+            return;
+        }
+        finally
+        {
+            client.Dispose();
+        }
+
+        messageCounter = 15; // just a statement so i can set a breakpoint.
+
+        
+
+        messageCounter++;
+    }
+}
+
+@code {
+    public string MessageFromConsole { get; set; } = "Default Message Text";
+    int messageCounter = 1;
+
+    private string inputValue1 = "";
+
+
+    
+}
