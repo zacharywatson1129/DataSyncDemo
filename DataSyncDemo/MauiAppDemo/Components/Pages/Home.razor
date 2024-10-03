@@ -1,0 +1,190 @@
+﻿@page "/"
+@inject GroceryListItemService service
+@using System.Diagnostics
+@using System.Net
+@using DataSyncLibrary.Models
+@using MauiAppDemo.Services
+@using Microsoft.Maui.Controls;
+@using System.Net.Sockets
+@using System.Text
+@using System.Reflection
+@using System.Text.Json
+
+<h1>Manage Grocery List Items.</h1>
+<p>IP Address: @ipAddress</p>
+
+<table>
+    <tbody>
+        @foreach (var item in groceryList)
+        {
+            <tr>
+                <td>@item.Id</td>
+                <td>@item.Quantity</td>
+                <td>@item.Name</td>
+                <td><button @onclick="() => deleteItem(item.Id)">Delete</button></td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<button @onclick="() => loadData()">Sync</button>
+<p>Enter new grocery list item:</p>
+<textarea id="textBox" @bind="newGroceryItemText">
+    
+</textarea>
+
+<button @onclick="() => addItem()">Add grocery list item</button>
+
+<p>@errMsg</p>
+
+@code {
+
+    [Inject]
+    private NavigationManager navManager { get; set; }
+
+    private string errMsg = "";
+
+    private string ipAddress = "";
+    // TODO: Put this in a config or settings file.
+    private string portNumber = "7140";
+    private string apiUrl = "";
+
+    /// <summary>
+    /// This function retrieves app settings.
+    /// </summary>
+    private void LoadAppSettings()
+    {
+        // First, we fetch the IP Address.
+        // We will check the app settings for the IP address. If we don't find it,
+        // we will send a message to connect to the machine.
+        // Second, we retrieve the Port Number.
+    }
+
+    /// <summary>
+    /// This method will be called when this page loads.
+    /// </summary>
+    /// <returns></returns>
+    protected override async Task OnInitializedAsync()
+    {
+        ipAddress = Preferences.Get("Desktop_IPAddress", "unknown");
+        if (ipAddress == "unknown")
+        {
+            navManager.NavigateTo("/EnterIPAddress");
+        }
+        apiUrl = $"http://{ipAddress}:{portNumber}";
+
+        try
+        {
+            if (service.justAddedNewItem)
+            {
+                // Grab the item.
+                GroceryListItem item = service.groceryListItem;
+                await AddNewItem(item);
+
+                // We'll just reset the flag back to 0.
+                service.justAddedNewItem = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            errMsg = ex.Message;
+        }
+    }
+
+    [Parameter]
+    public List<GroceryListItem> groceryList { get; set; } = new List<GroceryListItem>() 
+    {         
+        new GroceryListItem() { Id = 1, Name = "Milk", Quantity = "1/2 Gallon" },
+        new GroceryListItem() { Id = 2, Name = "Eggs", Quantity = "2 Dozen" },
+        new GroceryListItem() { Id = 3, Name = "Bread", Quantity = "2 Loaves" }
+    };
+
+    [Parameter]
+    public EventCallback<int> DeleteGroceryItemClicked { get; set; }
+
+    public string MessageFromConsole { get; set; } = "Default Message Text";
+    int messageCounter = 1;
+
+    private string newGroceryItemText = "";
+
+    private string inputValue1 = "";
+
+    private void deleteItem(long item)
+    {
+        groceryList.RemoveAll(x => x.Id == item);
+    }
+
+    // Intermediate step, not what happens once it comes back.
+    private void addItem()
+    {
+        navManager.NavigateTo("/NewGroceryItemPage");
+    }
+
+    private async Task AddNewItem(GroceryListItem groceryListItem)
+    {
+
+        await Task.Delay(1000);
+
+        // Now calling the api just assumes that api is running. So we still do all of this.
+        // We ARE assuming the api is running, we will get an exception if it is not.
+        var client = new HttpClient();
+        client.BaseAddress = new Uri(apiUrl);
+
+        try
+        {
+            var json = JsonSerializer.Serialize(groceryListItem);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync("/api/GroceryList", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseData = await response.Content.ReadAsStringAsync();
+                Console.WriteLine("Finished sending response to api.");
+                Console.WriteLine(responseData);
+
+
+            }
+        }
+        catch (Exception ex)
+        {
+            // printException(ex, "There was an error with the API.");
+            // pauseUntilKeypress();
+            errMsg = "Just didn't work " + ex.Message;
+        }
+    }
+
+    private async void loadData()
+    {
+        var client = new HttpClient();
+        client.BaseAddress = new Uri(apiUrl);
+
+        Console.WriteLine("Attempted to connect to the Web API....");
+
+        try
+        {
+            var response = await client.GetAsync($"/api/GroceryList/");
+
+            response.EnsureSuccessStatusCode();
+
+            var responseBody = response.Content.ReadAsStream();
+
+            // We use this method to convert a group of single items into an IAsyncEnumerable type.
+            IAsyncEnumerable<GroceryListItem> groceriesAsyncEnumerable = JsonSerializer.DeserializeAsyncEnumerable<GroceryListItem>(responseBody, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+            // Now we convert to a regular List.
+            groceryList = new List<GroceryListItem>(groceriesAsyncEnumerable.ToBlockingEnumerable());
+
+        }
+        catch (Exception ex)
+        {
+            //printException(ex);
+            //pauseUntilKeypress();
+
+            //return new List<GroceryListItem>();
+        }
+
+    }
+
+
+}

@@ -1,0 +1,46 @@
+﻿@page "/NewGroceryItemPage"
+@inject GroceryListItemService service
+@using System.Diagnostics;
+@using System.Net;
+@using Microsoft.Maui.Controls;
+@using MauiAppDemo.Services;
+@using System.Net.Sockets;
+@using System.Text;
+@using System.Reflection;
+
+<h3>New Grocery Item</h3>
+
+<p>Grocery Item Name:</p>
+<textarea @bind="name"></textarea>
+
+<p>Grocery Item Quantity:</p>
+<textarea @bind="quantity"></textarea>
+
+<button @onclick="() => saveGroceryItem()">Save Grocery Item</button>
+
+<button @onclick="() => cancel()">Cancel</button>
+
+@code {
+
+    [Inject]
+    private NavigationManager navManager { get; set; }
+    private string name { get; set; } = "";
+    private string quantity { get; set; } = "";
+
+    public void saveGroceryItem()
+    {
+        // Mark the flag so the load event of home can check it.
+        service.justAddedNewItem = true;
+        // Assuming nothing is blank, data is valid.
+        service.groceryListItem.Name = name;
+        service.groceryListItem.Quantity = quantity;
+
+        navManager.NavigateTo("/");
+    }
+
+    public void cancel()
+    {
+        navManager.NavigateTo("/");
+    }
+
+}

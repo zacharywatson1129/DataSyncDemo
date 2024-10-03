@@ -1,0 +1,40 @@
+﻿@page "/EnterIPAddress"
+@using System.Diagnostics;
+@using System.Net;
+@using Microsoft.Maui.Controls;
+@using System.Net.Sockets;
+@using System.Text;
+@using System.Reflection;
+
+
+<h1>Enter IP Address</h1>
+
+<h3>Enter IP Address of PC to connect to:</h3>
+
+<textarea id="textBox" @bind="ipAddress"></textarea>
+
+<button @onclick="() => saveAddress()">Save IP Address</button>
+
+<h3>This IP address will be saved to the phone so it will be remembered each time.</h3>
+
+@code {
+    [Inject]
+    private NavigationManager navManager { get; set; }
+    private string ipAddress = "192.168.x.x";
+    string apple = "";
+
+    private void saveAddress()
+    {
+        int count = ipAddress.Split('.').Length;
+        if (count < 4 || count > 4)
+        {
+            // Do nothing, throw an error.
+        }
+        else
+        {
+            Preferences.Set("Desktop_IPAddress", ipAddress);
+            navManager.NavigateTo("/");
+            // Now, somehow close out of this page and load the home page.
+        }
+    }
+}
